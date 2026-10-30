@@ -1,12 +1,5 @@
-import { Card } from 'antd';
+import { redirect } from 'next/navigation';
 
 export default function Home() {
-  return (
-    <main className="app-shell">
-      <Card className="welcome-card">
-        <h1>Task Manager</h1>
-        <p>Приложение для управления списками и задачами.</p>
-      </Card>
-    </main>
-  );
+  redirect('/lists');
 }
