@@ -4,7 +4,7 @@
 
 .brand {
   margin: 0 0 24px;
-  color: #1677ff;
+  color: var(--primary);
   font-size: 16px;
   font-weight: 700;
 }
@@ -17,6 +17,6 @@
 
 .description {
   margin: 0 0 28px;
-  color: #4b5563;
+  color: var(--muted);
   line-height: 1.6;
 }

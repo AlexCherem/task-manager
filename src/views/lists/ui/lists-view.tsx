@@ -1,17 +1,16 @@
-import { Button, Card } from 'antd';
+import { Card } from 'antd';
 
-import { logout } from '@/features/auth/api';
-
-export function ListsView({ email }: { email: string }) {
+export function ListsView() {
   return (
-    <main className="app-shell">
-      <Card className="welcome-card">
-        <h1>Task Manager</h1>
-        <p>Вы вошли как {email}.</p>
-        <form action={logout} style={{ marginTop: 24 }}>
-          <Button htmlType="submit">Выйти</Button>
-        </form>
+    <section aria-labelledby="lists-title">
+      <h1 id="lists-title" className="page-title">
+        Списки задач
+      </h1>
+      <Card>
+        <p className="page-description">
+          Здесь будут отображаться ваши списки задач.
+        </p>
       </Card>
-    </main>
+    </section>
   );
 }

@@ -7,6 +7,7 @@ const config: StorybookConfig = {
   framework: '@storybook/nextjs-vite',
   viteFinal(config) {
     return mergeConfig(config, {
+      optimizeDeps: { include: ['@ant-design/nextjs-registry'] },
       build: {
         rolldownOptions: {
           onLog(level, log, defaultHandler) {

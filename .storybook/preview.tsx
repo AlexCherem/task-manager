@@ -1,6 +1,6 @@
 import type { Preview } from '@storybook/nextjs-vite';
 
-import { Providers } from '../src/app/providers';
+import { AppProviders } from '../src/app/providers';
 
 import 'antd/dist/reset.css';
 import '../src/app/globals.css';
@@ -8,9 +8,9 @@ import '../src/app/globals.css';
 const preview: Preview = {
   decorators: [
     (Story) => (
-      <Providers>
+      <AppProviders>
         <Story />
-      </Providers>
+      </AppProviders>
     ),
   ],
   parameters: {

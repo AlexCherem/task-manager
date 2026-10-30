@@ -1,0 +1,83 @@
+.header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 24px;
+  width: min(100%, 1200px);
+  min-height: 80px;
+  margin: 0 auto;
+  padding: 16px 24px;
+}
+
+.brand {
+  margin-right: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.mark {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #1677ff;
+  color: #fff;
+  place-items: center;
+}
+
+.brand:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+.controls,
+.account {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.account {
+  gap: 12px;
+}
+
+.email {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+@media (max-width: 960px) {
+  .inner {
+    gap: 16px;
+  }
+
+  .controls {
+    flex: 1 0 100%;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 16px;
+  }
+}
+
+@media (max-width: 520px) {
+  .inner {
+    padding: 16px;
+  }
+
+  .account {
+    justify-content: space-between;
+    width: 100%;
+  }
+}
