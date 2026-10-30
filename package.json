@@ -18,10 +18,12 @@
     "test:storybook": "vitest run --project storybook",
     "test:install-browser": "playwright install chromium",
     "storybook": "storybook dev -p 6006 --no-open",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "db:check": "node --experimental-strip-types --env-file=.env.local --conditions=react-server scripts/check-db.mjs"
   },
   "dependencies": {
     "@ant-design/nextjs-registry": "^1.3.0",
+    "@neondatabase/serverless": "^1.2.0",
     "antd": "^6.6.8",
     "jose": "^6.2.14",
     "next": "16.4.3",
