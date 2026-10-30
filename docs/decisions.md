@@ -10,7 +10,7 @@
 
 ## Облегчённый FSD
 
-Используем знакомое по Service Cycle направление зависимостей:
+Используем направление зависимостей:
 
 ```text
 app -> views -> widgets -> features -> entities -> shared
