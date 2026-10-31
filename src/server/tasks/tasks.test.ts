@@ -8,7 +8,7 @@ vi.mock('server-only', () => ({}));
 vi.mock('../auth/session', () => ({ requireSession }));
 vi.mock('../db', () => ({ getDb: () => sql }));
 
-import { createTask, getTasksByList } from './tasks';
+import { createTask, getTasksByList, getTaskListStats } from './tasks';
 
 const listId = '00000000-0000-4000-8000-000000000001';
 const input = {
@@ -41,6 +41,7 @@ beforeEach(() => {
 describe('task data access', () => {
   it.each([
     ['read', () => getTasksByList(listId)],
+    ['statistics', () => getTaskListStats([listId])],
     ['create', () => createTask(input)],
   ] as const)('requires a session before %s', async (_, operation) => {
     const error = new Error('Session required');
@@ -125,10 +126,74 @@ describe('task data access', () => {
   });
   it.each([
     ['read', () => getTasksByList(listId)],
+    ['statistics', () => getTaskListStats([listId])],
     ['create', () => createTask(input)],
   ] as const)('preserves database errors during %s', async (_, operation) => {
     const error = new Error('Database unavailable');
     sql.mockRejectedValue(error);
     await expect(operation()).rejects.toBe(error);
+  });
+});
+
+describe('task list statistics', () => {
+  const now = new Date('2030-01-01T12:00:00.000Z');
+  const otherId = '00000000-0000-4000-8000-000000000002';
+
+  it('does not query the database when no lists are displayed', async () => {
+    expect(await getTaskListStats([], now)).toEqual({});
+    expect(requireSession).toHaveBeenCalledOnce();
+    expect(sql).not.toHaveBeenCalled();
+  });
+  it.each([null, 'invalid', [listId, 'invalid'], [42]])(
+    'rejects invalid identifiers before querying: %j',
+    async (ids) => {
+      await expect(getTaskListStats(ids, now)).rejects.toThrow(
+        'Invalid task list identifiers.',
+      );
+      expect(sql).not.toHaveBeenCalled();
+    },
+  );
+  it('groups tasks by list, counts overdue tasks and includes empty lists', async () => {
+    sql.mockResolvedValue([
+      {
+        list_id: listId,
+        status: 'new',
+        deadline: new Date('2029-12-31T12:00:00Z'),
+      },
+      {
+        list_id: listId,
+        status: 'in_progress',
+        deadline: new Date('2030-01-02T12:00:00Z'),
+      },
+      {
+        list_id: listId,
+        status: 'done',
+        deadline: new Date('2020-01-01T12:00:00Z'),
+      },
+    ]);
+    expect(await getTaskListStats([listId, otherId], now)).toEqual({
+      [listId]: {
+        total: 3,
+        new: 1,
+        inProgress: 1,
+        done: 1,
+        overdue: 1,
+        progressPercent: 33,
+        deadlineIndicator: 'overdue',
+      },
+      [otherId]: {
+        total: 0,
+        new: 0,
+        inProgress: 0,
+        done: 0,
+        overdue: 0,
+        progressPercent: 0,
+        deadlineIndicator: 'none',
+      },
+    });
+    expect(sql).toHaveBeenCalledOnce();
+    const [strings, ...parameters] = sql.mock.calls[0];
+    expect(strings.join('')).not.toContain(listId);
+    expect(parameters).toEqual([[listId, otherId]]);
   });
 });

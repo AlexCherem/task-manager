@@ -1,6 +1,8 @@
 import { Card, Empty } from 'antd';
 import Link from 'next/link';
 
+import type { TaskStats } from '@/entities/task';
+import { TaskStatsSummary } from '@/entities/task/ui';
 import type { TaskList } from '@/entities/task-list';
 import { CreateListButton } from '@/features/create-list';
 import { createList } from '@/features/create-list/api';
@@ -14,9 +16,11 @@ import styles from './lists-view.module.css';
 
 export function ListsView({
   lists,
+  statsByList,
   query = '',
 }: {
   lists: TaskList[];
+  statsByList: Record<string, TaskStats>;
   query?: string;
 }) {
   return (
@@ -52,6 +56,7 @@ export function ListsView({
                   {list.title}
                 </Link>
               </h2>
+              <TaskStatsSummary stats={statsByList[list.id]} />
               <div className={styles.listActions}>
                 <RenameListButton list={list} onSubmit={renameList} />
                 <DeleteListButton list={list} onDelete={deleteList} />

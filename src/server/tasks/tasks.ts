@@ -3,11 +3,13 @@ import 'server-only';
 import type { QueryRows } from '@neondatabase/serverless';
 
 import {
+  getTaskStats,
   taskTitleMaxLength,
   taskStatusLabels,
   taskPriorityLabels,
   type Task,
   type TaskMutationResult,
+  type TaskStats,
 } from '@/entities/task';
 import { isUuid } from '@/shared/lib/is-uuid';
 
@@ -90,4 +92,34 @@ export async function createTask(input: unknown): Promise<TaskMutationResult> {
     return { task: null, error: 'Список не найден. Возможно, он уже удалён.' };
 
   return { task: toTask(row), error: null };
+}
+
+export async function getTaskListStats(
+  listIds: unknown,
+  now: Date = new Date(),
+): Promise<Record<string, TaskStats>> {
+  await requireSession();
+  if (!Array.isArray(listIds) || !listIds.every(isUuid)) {
+    throw new Error('Invalid task list identifiers.');
+  }
+  if (listIds.length === 0) return {};
+
+  const tasksByList = new Map<string, Pick<Task, 'status' | 'deadline'>[]>(
+    listIds.map((id) => [id, []]),
+  );
+  const sql = getDb();
+  const rows = await sql`
+    SELECT list_id, status, deadline
+    FROM tasks WHERE list_id = ANY(${listIds}::uuid[])
+  `;
+  for (const row of rows) {
+    tasksByList.get(row.list_id)?.push({
+      status: row.status,
+      deadline: new Date(row.deadline).toISOString(),
+    });
+  }
+
+  return Object.fromEntries(
+    [...tasksByList].map(([id, tasks]) => [id, getTaskStats(tasks, now)]),
+  );
 }

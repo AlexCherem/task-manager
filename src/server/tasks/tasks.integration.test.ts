@@ -8,7 +8,7 @@ vi.mock('../auth/session', () => ({ requireSession: vi.fn() }));
 import { requireSession } from '../auth/session';
 import { getDb } from '../db';
 import { createTaskList, getTaskList } from '../lists';
-import { createTask, getTasksByList } from './tasks';
+import { createTask, getTasksByList, getTaskListStats } from './tasks';
 
 const sql = getDb();
 const prefix = `task-integration-${randomUUID()}:`;
@@ -103,5 +103,59 @@ describe('tasks in PostgreSQL', () => {
       'Список не найден. Возможно, он уже удалён.',
     );
     expect(await getTasksByList(list.id)).toEqual([]);
+  });
+});
+
+describe('task list statistics in PostgreSQL', () => {
+  const now = new Date('2030-01-01T12:00:00.000Z');
+
+  it('reads counters from saved tasks, keeps lists isolated and reflects new tasks', async () => {
+    const first = await makeList('stats-first');
+    const second = await makeList('stats-second');
+    const empty = await makeList('stats-empty');
+    await saveTask(first.id, { deadline: '2029-12-31T12:00:00.000Z' });
+    await saveTask(first.id, {
+      status: 'in_progress',
+      deadline: '2030-01-02T12:00:00.000Z',
+    });
+    await saveTask(first.id, {
+      status: 'done',
+      deadline: '2020-01-01T12:00:00.000Z',
+    });
+    await saveTask(second.id, { deadline: '2030-01-03T12:00:00.000Z' });
+    const stats = await getTaskListStats([first.id, second.id, empty.id], now);
+    expect(stats[first.id]).toEqual({
+      total: 3,
+      new: 1,
+      inProgress: 1,
+      done: 1,
+      overdue: 1,
+      progressPercent: 33,
+      deadlineIndicator: 'overdue',
+    });
+    expect(stats[second.id]).toEqual({
+      total: 1,
+      new: 1,
+      inProgress: 0,
+      done: 0,
+      overdue: 0,
+      progressPercent: 0,
+      deadlineIndicator: 'due_soon',
+    });
+    expect(stats[empty.id]).toEqual({
+      total: 0,
+      new: 0,
+      inProgress: 0,
+      done: 0,
+      overdue: 0,
+      progressPercent: 0,
+      deadlineIndicator: 'none',
+    });
+    await saveTask(first.id, { status: 'done' });
+    expect((await getTaskListStats([first.id], now))[first.id]).toMatchObject({
+      total: 4,
+      done: 2,
+      progressPercent: 50,
+    });
   });
 });

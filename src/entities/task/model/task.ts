@@ -33,7 +33,10 @@ const priorityOrder: Record<TaskPriority, number> = {
 
 const upcomingDeadlineWindow = 48 * 60 * 60 * 1000;
 
-function isOverdue(task: Task, now: number): boolean {
+function isOverdue(
+  task: Pick<Task, 'status' | 'deadline'>,
+  now: number,
+): boolean {
   return task.status !== 'done' && Date.parse(task.deadline) < now;
 }
 
@@ -58,7 +61,10 @@ export function sortTasks(tasks: readonly Task[], now: Date): Task[] {
   });
 }
 
-export function getTaskStats(tasks: readonly Task[], now: Date): TaskStats {
+export function getTaskStats(
+  tasks: readonly Pick<Task, 'status' | 'deadline'>[],
+  now: Date,
+): TaskStats {
   const nowTimestamp = now.getTime();
   let hasUpcomingDeadline = false;
   const stats: TaskStats = {
