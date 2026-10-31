@@ -35,12 +35,14 @@ function isTaskListId(id: unknown): id is string {
   );
 }
 
-export async function getTaskLists(): Promise<TaskList[]> {
+export async function getTaskLists(search: unknown = ''): Promise<TaskList[]> {
   await requireSession();
+  const query = typeof search === 'string' ? search.trim() : '';
   const sql = getDb();
   const rows = await sql`
     SELECT id, title
     FROM task_lists
+    WHERE strpos(lower(title), lower(${query})) > 0
     ORDER BY created_at DESC, id DESC
   `;
 

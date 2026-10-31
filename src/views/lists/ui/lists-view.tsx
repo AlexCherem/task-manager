@@ -7,10 +7,17 @@ import { DeleteListButton } from '@/features/delete-list';
 import { deleteList } from '@/features/delete-list/api';
 import { RenameListButton } from '@/features/rename-list';
 import { renameList } from '@/features/rename-list/api';
+import { SearchListsForm } from '@/features/search-lists';
 
 import styles from './lists-view.module.css';
 
-export function ListsView({ lists }: { lists: TaskList[] }) {
+export function ListsView({
+  lists,
+  query = '',
+}: {
+  lists: TaskList[];
+  query?: string;
+}) {
   return (
     <section aria-labelledby="lists-title">
       <div className={styles.heading}>
@@ -18,13 +25,22 @@ export function ListsView({ lists }: { lists: TaskList[] }) {
           <h1 id="lists-title" className={styles.title}>
             Списки задач
           </h1>
-          <p className="page-description">Всего списков: {lists.length}</p>
+          <p className="page-description">
+            {query ? 'Найдено списков' : 'Всего списков'}: {lists.length}
+          </p>
         </div>
         <CreateListButton onSubmit={createList} />
       </div>
+      <SearchListsForm key={query} query={query} />
       {lists.length === 0 ? (
         <Card>
-          <Empty description="Списков пока нет" />
+          <Empty
+            description={
+              query
+                ? 'По вашему запросу списки не найдены. Измените запрос или сбросьте поиск.'
+                : 'Списков пока нет'
+            }
+          />
         </Card>
       ) : (
         <div className={styles.grid}>

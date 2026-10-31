@@ -32,6 +32,7 @@ beforeEach(() => {
 describe('task list data access', () => {
   it.each([
     ['read', () => getTaskLists()],
+    ['search', () => getTaskLists('Work')],
     ['create', () => createTaskList('Work')],
     ['rename', () => renameTaskList(listId, 'Work')],
     ['delete', () => deleteTaskList(listId)],
@@ -180,5 +181,30 @@ describe('deleting task lists', () => {
     const error = new Error('Database unavailable');
     sql.mockRejectedValue(error);
     await expect(deleteTaskList(listId)).rejects.toBe(error);
+  });
+});
+
+describe('searching task lists', () => {
+  it('normalizes the query and sends special characters as a SQL parameter', async () => {
+    const query = "Работа 50% _ 'новая'";
+    await getTaskLists(`  ${query}  `);
+    const [strings, ...parameters] = sql.mock.calls[0];
+    expect(strings.join('')).not.toContain(query);
+    expect(parameters).toEqual([query]);
+  });
+
+  it.each([undefined, null, 42, {}, [], '', '   '])(
+    'uses an empty search for missing, blank or non-string input: %j',
+    async (search) => {
+      await getTaskLists(search);
+      const [, ...parameters] = sql.mock.calls[0];
+      expect(parameters).toEqual(['']);
+    },
+  );
+
+  it('propagates database failures instead of reporting an empty result', async () => {
+    const error = new Error('Database unavailable');
+    sql.mockRejectedValue(error);
+    await expect(getTaskLists('Work')).rejects.toBe(error);
   });
 });

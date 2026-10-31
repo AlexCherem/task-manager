@@ -208,3 +208,60 @@ describe('deleting task lists in PostgreSQL', () => {
     ).toEqual([other]);
   });
 });
+
+describe('searching task lists in PostgreSQL', () => {
+  it('matches part of a title without case sensitivity, including Cyrillic', async () => {
+    const first = await createFixture('Работа Alpha');
+    const second = await createFixture('Личное Beta');
+    expect(
+      (await getTaskLists('  оТА aLpHa  ')).filter((list) =>
+        list.title.startsWith(prefix),
+      ),
+    ).toEqual([first]);
+    expect(
+      (await getTaskLists('ЛИЧНОЕ')).filter((list) =>
+        list.title.startsWith(prefix),
+      ),
+    ).toEqual([second]);
+  });
+
+  it('treats percent, underscore, backslash and quotes as literal text', async () => {
+    const list = await createFixture("Символы %_\\' в названии");
+    await createFixture('Символы abc в названии');
+    expect(
+      (await getTaskLists("%_\\'")).filter((item) =>
+        item.title.startsWith(prefix),
+      ),
+    ).toEqual([list]);
+  });
+
+  it('returns all fixture lists for an empty query', async () => {
+    const first = await createFixture('search-all-first');
+    const second = await createFixture('search-all-second');
+    expect(
+      (await getTaskLists('   ')).filter((list) =>
+        list.title.startsWith(prefix),
+      ),
+    ).toEqual([second, first]);
+  });
+
+  it('returns no matches for an unknown title', async () => {
+    await createFixture('search-existing');
+    expect(await getTaskLists(prefix + 'missing')).toEqual([]);
+  });
+
+  it('reflects creation, renaming and deletion in filtered results', async () => {
+    const query = prefix + 'search-active';
+    expect(await getTaskLists(query)).toEqual([]);
+    const result = await createTaskList(query);
+    if (result.error !== null) throw new Error(result.error);
+    const list = result.list;
+    expect(await getTaskLists(query)).toEqual([list]);
+    const title = prefix + 'search-renamed';
+    expect((await renameTaskList(list.id, title)).error).toBeNull();
+    expect(await getTaskLists(query)).toEqual([]);
+    expect(await getTaskLists(title)).toEqual([{ id: list.id, title }]);
+    expect((await deleteTaskList(list.id)).error).toBeNull();
+    expect(await getTaskLists(title)).toEqual([]);
+  });
+});
