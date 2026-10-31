@@ -8,7 +8,12 @@ vi.mock('../auth/session', () => ({ requireSession: vi.fn() }));
 
 import { requireSession } from '../auth/session';
 import { getDb } from '../db';
-import { createTaskList, getTaskLists, renameTaskList } from './lists';
+import {
+  createTaskList,
+  getTaskLists,
+  renameTaskList,
+  deleteTaskList,
+} from './lists';
 
 const sql = getDb();
 const prefix = `integration-${randomUUID()}:`;
@@ -165,5 +170,41 @@ describe('renaming task lists in PostgreSQL', () => {
     expect(
       (await getTaskLists()).filter((item) => item.title.startsWith(prefix)),
     ).toEqual([]);
+  });
+});
+
+describe('deleting task lists in PostgreSQL', () => {
+  it('removes the selected list and its tasks while preserving another list and its task', async () => {
+    const list = await createFixture('delete-selected');
+    const other = await createFixture('delete-untouched');
+    const deletedTasks = await sql`
+      INSERT INTO tasks (list_id, title, deadline)
+      VALUES (${list.id}, 'First task', ${deadline}), (${list.id}, 'Second task', ${deadline})
+      RETURNING id
+    `;
+    const [otherTask] = await sql`
+      INSERT INTO tasks (list_id, title, deadline)
+      VALUES (${other.id}, 'Keep this task', ${deadline}) RETURNING id
+    `;
+    expect(await deleteTaskList(list.id)).toEqual({ error: null });
+    const lists = await getTaskLists();
+    expect(lists).not.toContainEqual(list);
+    expect(lists).toContainEqual(other);
+    expect(
+      await sql`SELECT id FROM tasks WHERE id IN (${deletedTasks[0].id}, ${deletedTasks[1].id})`,
+    ).toEqual([]);
+    expect(await sql`SELECT id FROM tasks WHERE id = ${otherTask.id}`).toEqual([
+      { id: otherTask.id },
+    ]);
+  });
+
+  it('allows repeated deletion without affecting remaining lists', async () => {
+    const list = await createFixture('delete-twice');
+    const other = await createFixture('delete-keep');
+    expect(await deleteTaskList(list.id)).toEqual({ error: null });
+    expect(await deleteTaskList(list.id)).toEqual({ error: null });
+    expect(
+      (await getTaskLists()).filter((item) => item.title.startsWith(prefix)),
+    ).toEqual([other]);
   });
 });

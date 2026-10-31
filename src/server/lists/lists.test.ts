@@ -11,7 +11,12 @@ vi.mock('server-only', () => ({}));
 vi.mock('../auth/session', () => ({ requireSession }));
 vi.mock('../db', () => ({ getDb: () => sql }));
 
-import { createTaskList, getTaskLists, renameTaskList } from './lists';
+import {
+  createTaskList,
+  getTaskLists,
+  renameTaskList,
+  deleteTaskList,
+} from './lists';
 
 const listId = '00000000-0000-4000-8000-000000000001';
 
@@ -29,6 +34,7 @@ describe('task list data access', () => {
     ['read', () => getTaskLists()],
     ['create', () => createTaskList('Work')],
     ['rename', () => renameTaskList(listId, 'Work')],
+    ['delete', () => deleteTaskList(listId)],
   ] as const)(
     'requires a session before %s reaches the database',
     async (_, operation) => {
@@ -144,5 +150,35 @@ describe('renaming task lists', () => {
     const error = new Error('Database unavailable');
     sql.mockRejectedValue(error);
     await expect(renameTaskList(listId, 'Work')).rejects.toBe(error);
+  });
+});
+
+describe('deleting task lists', () => {
+  it.each([undefined, null, 42, {}, '', 'not-a-uuid', "' OR true --"])(
+    'rejects an invalid identifier before deletion: %j',
+    async (id) => {
+      expect(await deleteTaskList(id)).toEqual({
+        error: 'Некорректный идентификатор списка.',
+      });
+      expect(sql).not.toHaveBeenCalled();
+    },
+  );
+
+  it('passes the identifier as a SQL parameter', async () => {
+    expect(await deleteTaskList(listId)).toEqual({ error: null });
+    const [strings, ...parameters] = sql.mock.calls[0];
+    expect(strings.join('')).not.toContain(listId);
+    expect(parameters).toEqual([listId]);
+  });
+
+  it('treats an already absent list as successfully deleted', async () => {
+    sql.mockResolvedValue([]);
+    expect(await deleteTaskList(listId)).toEqual({ error: null });
+  });
+
+  it('preserves a database failure instead of reporting success', async () => {
+    const error = new Error('Database unavailable');
+    sql.mockRejectedValue(error);
+    await expect(deleteTaskList(listId)).rejects.toBe(error);
   });
 });

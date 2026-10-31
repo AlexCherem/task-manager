@@ -4,6 +4,7 @@ import {
   taskListTitleMaxLength,
   type TaskListMutationResult,
   type TaskList,
+  type DeleteTaskListResult,
 } from '@/entities/task-list';
 
 import { requireSession } from '../auth/session';
@@ -25,6 +26,13 @@ function normalizeTaskListTitle(
   }
 
   return { title: normalizedTitle, error: null };
+}
+
+function isTaskListId(id: unknown): id is string {
+  return (
+    typeof id === 'string' &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+  );
 }
 
 export async function getTaskLists(): Promise<TaskList[]> {
@@ -64,10 +72,7 @@ export async function renameTaskList(
   title: unknown,
 ): Promise<TaskListMutationResult> {
   await requireSession();
-  if (
-    typeof id !== 'string' ||
-    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
-  ) {
+  if (!isTaskListId(id)) {
     return { list: null, error: 'Некорректный идентификатор списка.' };
   }
 
@@ -86,4 +91,18 @@ export async function renameTaskList(
   }
 
   return { list: { id: row.id, title: row.title }, error: null };
+}
+
+export async function deleteTaskList(
+  id: unknown,
+): Promise<DeleteTaskListResult> {
+  await requireSession();
+  if (!isTaskListId(id)) {
+    return { error: 'Некорректный идентификатор списка.' };
+  }
+
+  const sql = getDb();
+  await sql`DELETE FROM task_lists WHERE id = ${id}`;
+
+  return { error: null };
 }
