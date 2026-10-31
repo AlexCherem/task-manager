@@ -70,19 +70,19 @@ export const ModalTheme: Story = {
     );
     try {
       await userEvent.click(form.getByText('Тёмная', { exact: true }));
-      await waitFor(() =>
-        expect(content).toHaveStyle({ backgroundColor: 'rgb(31, 31, 31)' }),
-      );
-      await expect(
-        form.getByRole('textbox', { name: 'Пример поля' }),
-      ).toHaveStyle({ backgroundColor: 'rgb(20, 20, 20)' });
+      await waitFor(() => {
+        expect(content).toHaveStyle({ backgroundColor: 'rgb(31, 31, 31)' });
+        expect(form.getByRole('textbox', { name: 'Пример поля' })).toHaveStyle({
+          backgroundColor: 'rgb(20, 20, 20)',
+        });
+      });
       await userEvent.click(form.getByText('Светлая', { exact: true }));
-      await waitFor(() =>
-        expect(content).toHaveStyle({ backgroundColor: 'rgb(255, 255, 255)' }),
-      );
-      await expect(
-        form.getByRole('textbox', { name: 'Пример поля' }),
-      ).toHaveStyle({ backgroundColor: 'rgb(255, 255, 255)' });
+      await waitFor(() => {
+        expect(content).toHaveStyle({ backgroundColor: 'rgb(255, 255, 255)' });
+        expect(form.getByRole('textbox', { name: 'Пример поля' })).toHaveStyle({
+          backgroundColor: 'rgb(255, 255, 255)',
+        });
+      });
     } finally {
       await userEvent.click(form.getByText('Системная', { exact: true }));
     }

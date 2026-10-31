@@ -1,0 +1,14 @@
+.title {
+  overflow-wrap: anywhere;
+  font-weight: 500;
+}
+.description {
+  margin: 4px 0 0;
+  color: var(--muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}

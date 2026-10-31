@@ -1,0 +1,14 @@
+import type { Task, TaskPriority, TaskStatus } from '../model/task';
+
+export type CreateTaskInput = {
+  listId: string;
+  title: string;
+  description: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  /** Canonical ISO 8601 timestamp in UTC. */
+  deadline: string;
+};
+
+export type TaskMutationResult =
+  { task: Task; error: null } | { task: null; error: string };

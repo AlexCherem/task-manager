@@ -14,6 +14,7 @@ vi.mock('../db', () => ({ getDb: () => sql }));
 import {
   createTaskList,
   getTaskLists,
+  getTaskList,
   renameTaskList,
   deleteTaskList,
 } from './lists';
@@ -32,6 +33,7 @@ beforeEach(() => {
 describe('task list data access', () => {
   it.each([
     ['read', () => getTaskLists()],
+    ['read one', () => getTaskList(listId)],
     ['search', () => getTaskLists('Work')],
     ['create', () => createTaskList('Work')],
     ['rename', () => renameTaskList(listId, 'Work')],
@@ -206,5 +208,24 @@ describe('searching task lists', () => {
     const error = new Error('Database unavailable');
     sql.mockRejectedValue(error);
     await expect(getTaskLists('Work')).rejects.toBe(error);
+  });
+});
+
+describe('reading one task list', () => {
+  it.each([null, '', 'invalid'])(
+    'returns null for an invalid id: %j',
+    async (id) => {
+      expect(await getTaskList(id)).toBeNull();
+      expect(sql).not.toHaveBeenCalled();
+    },
+  );
+  it('returns null for a missing list', async () => {
+    expect(await getTaskList(listId)).toBeNull();
+  });
+  it('reads the requested list by a SQL parameter', async () => {
+    const list = { id: listId, title: 'Work' };
+    sql.mockResolvedValue([list]);
+    expect(await getTaskList(listId)).toEqual(list);
+    expect(sql.mock.calls[0].slice(1)).toEqual([listId]);
   });
 });

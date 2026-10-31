@@ -13,6 +13,8 @@ const config: StorybookConfig = {
           'next/form',
           'next/link',
           'react-dom',
+          'dayjs',
+          'dayjs/locale/ru',
         ],
       },
       build: {

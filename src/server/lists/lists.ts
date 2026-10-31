@@ -7,6 +7,8 @@ import {
   type DeleteTaskListResult,
 } from '@/entities/task-list';
 
+import { isUuid } from '@/shared/lib/is-uuid';
+
 import { requireSession } from '../auth/session';
 import { getDb } from '../db';
 
@@ -26,13 +28,6 @@ function normalizeTaskListTitle(
   }
 
   return { title: normalizedTitle, error: null };
-}
-
-function isTaskListId(id: unknown): id is string {
-  return (
-    typeof id === 'string' &&
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
-  );
 }
 
 export async function getTaskLists(search: unknown = ''): Promise<TaskList[]> {
@@ -74,7 +69,7 @@ export async function renameTaskList(
   title: unknown,
 ): Promise<TaskListMutationResult> {
   await requireSession();
-  if (!isTaskListId(id)) {
+  if (!isUuid(id)) {
     return { list: null, error: 'Некорректный идентификатор списка.' };
   }
 
@@ -99,7 +94,7 @@ export async function deleteTaskList(
   id: unknown,
 ): Promise<DeleteTaskListResult> {
   await requireSession();
-  if (!isTaskListId(id)) {
+  if (!isUuid(id)) {
     return { error: 'Некорректный идентификатор списка.' };
   }
 
@@ -107,4 +102,14 @@ export async function deleteTaskList(
   await sql`DELETE FROM task_lists WHERE id = ${id}`;
 
   return { error: null };
+}
+
+export async function getTaskList(id: unknown): Promise<TaskList | null> {
+  await requireSession();
+  if (!isUuid(id)) return null;
+
+  const sql = getDb();
+  const [row] = await sql`SELECT id, title FROM task_lists WHERE id = ${id}`;
+
+  return row ? { id: row.id, title: row.title } : null;
 }

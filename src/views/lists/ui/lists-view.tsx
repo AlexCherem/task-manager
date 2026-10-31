@@ -1,4 +1,5 @@
 import { Card, Empty } from 'antd';
+import Link from 'next/link';
 
 import type { TaskList } from '@/entities/task-list';
 import { CreateListButton } from '@/features/create-list';
@@ -46,7 +47,11 @@ export function ListsView({
         <div className={styles.grid}>
           {lists.map((list) => (
             <Card key={list.id}>
-              <h2 className={styles.listTitle}>{list.title}</h2>
+              <h2 className={styles.listTitle}>
+                <Link href={`/lists/${list.id}`} className={styles.listLink}>
+                  {list.title}
+                </Link>
+              </h2>
               <div className={styles.listActions}>
                 <RenameListButton list={list} onSubmit={renameList} />
                 <DeleteListButton list={list} onDelete={deleteList} />

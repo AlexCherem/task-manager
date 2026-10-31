@@ -6,3 +6,9 @@ export type {
   TaskStats,
   TaskStatus,
 } from './model/task';
+export {
+  taskTitleMaxLength,
+  taskStatusLabels,
+  taskPriorityLabels,
+} from './model/task-config';
+export type { CreateTaskInput, TaskMutationResult } from './api/types';

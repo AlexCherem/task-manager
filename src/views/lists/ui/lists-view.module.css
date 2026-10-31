@@ -38,3 +38,11 @@
     flex-direction: column;
   }
 }
+
+.listLink {
+  color: var(--primary);
+  text-decoration: none;
+}
+.listLink:hover {
+  text-decoration: underline;
+}
