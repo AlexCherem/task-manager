@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
-import { expect, waitFor } from 'storybook/test';
+import { Input, Modal } from 'antd';
+import { expect, waitFor, within } from 'storybook/test';
 
 import { ThemeSwitcher } from './theme-switcher';
 
@@ -47,5 +48,43 @@ export const SwitchModes: Story = {
       );
       expect(localStorage.getItem('task-manager-theme')).toBe('system');
     });
+  },
+};
+
+export const ModalTheme: Story = {
+  render: () => (
+    <Modal title="Тема модального окна" open footer={null} closable={false}>
+      <ThemeSwitcher />
+      <Input aria-label="Пример поля" />
+    </Modal>
+  ),
+  play: async ({ canvasElement, userEvent }) => {
+    const dialog = await within(canvasElement.ownerDocument.body).findByRole(
+      'dialog',
+      { name: 'Тема модального окна' },
+    );
+    const content = dialog.querySelector('.ant-modal-container');
+    const form = within(dialog);
+    await waitFor(() =>
+      expect(form.getByRole('radio', { name: 'Тёмная' })).toBeEnabled(),
+    );
+    try {
+      await userEvent.click(form.getByText('Тёмная', { exact: true }));
+      await waitFor(() =>
+        expect(content).toHaveStyle({ backgroundColor: 'rgb(31, 31, 31)' }),
+      );
+      await expect(
+        form.getByRole('textbox', { name: 'Пример поля' }),
+      ).toHaveStyle({ backgroundColor: 'rgb(20, 20, 20)' });
+      await userEvent.click(form.getByText('Светлая', { exact: true }));
+      await waitFor(() =>
+        expect(content).toHaveStyle({ backgroundColor: 'rgb(255, 255, 255)' }),
+      );
+      await expect(
+        form.getByRole('textbox', { name: 'Пример поля' }),
+      ).toHaveStyle({ backgroundColor: 'rgb(255, 255, 255)' });
+    } finally {
+      await userEvent.click(form.getByText('Системная', { exact: true }));
+    }
   },
 };

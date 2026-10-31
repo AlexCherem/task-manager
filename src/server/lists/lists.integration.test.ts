@@ -8,7 +8,7 @@ vi.mock('../auth/session', () => ({ requireSession: vi.fn() }));
 
 import { requireSession } from '../auth/session';
 import { getDb } from '../db';
-import { createTaskList, getTaskLists } from './lists';
+import { createTaskList, getTaskLists, renameTaskList } from './lists';
 
 const sql = getDb();
 const prefix = `integration-${randomUUID()}:`;
@@ -118,5 +118,52 @@ describe('task lists in PostgreSQL', () => {
       INSERT INTO tasks (list_id, title, deadline)
       VALUES (${list.id}, '   ', ${deadline})
     `).rejects.toMatchObject({ code: '23514' });
+  });
+});
+
+describe('renaming task lists in PostgreSQL', () => {
+  it('updates only the requested title and preserves identity, creation time and tasks', async () => {
+    const list = await createFixture('before');
+    const other = await createFixture('untouched');
+    const [before] =
+      await sql`SELECT created_at::text FROM task_lists WHERE id = ${list.id}`;
+    const [task] = await sql`
+      INSERT INTO tasks (list_id, title, deadline)
+      VALUES (${list.id}, 'Task', ${deadline}) RETURNING id
+    `;
+    const title = `${prefix}После 'переименования'`;
+    const result = await renameTaskList(list.id, `  ${title}  `);
+    expect(result).toEqual({ list: { id: list.id, title }, error: null });
+    const lists = await getTaskLists();
+    expect(lists).toContainEqual({ id: list.id, title });
+    expect(lists).toContainEqual(other);
+    expect(lists).not.toContainEqual(list);
+    const [after] =
+      await sql`SELECT created_at::text FROM task_lists WHERE id = ${list.id}`;
+    expect(after.created_at).toBe(before.created_at);
+    expect(await sql`SELECT list_id FROM tasks WHERE id = ${task.id}`).toEqual([
+      { list_id: list.id },
+    ]);
+  });
+
+  it('accepts a normalized title at the maximum length', async () => {
+    const list = await createFixture('max-title');
+    const title = prefix.padEnd(taskListTitleMaxLength, 'a');
+    expect(await renameTaskList(list.id, `  ${title}  `)).toEqual({
+      list: { id: list.id, title },
+      error: null,
+    });
+    expect(await getTaskLists()).toContainEqual({ id: list.id, title });
+  });
+
+  it('reports a deleted list without creating a replacement', async () => {
+    const list = await createFixture('deleted');
+    await sql`DELETE FROM task_lists WHERE id = ${list.id}`;
+    const result = await renameTaskList(list.id, prefix + 'replacement');
+    expect(result.list).toBeNull();
+    expect(result.error).toBe('Список не найден. Возможно, он уже удалён.');
+    expect(
+      (await getTaskLists()).filter((item) => item.title.startsWith(prefix)),
+    ).toEqual([]);
   });
 });

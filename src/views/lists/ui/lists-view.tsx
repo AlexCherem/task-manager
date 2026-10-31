@@ -3,6 +3,8 @@ import { Card, Empty } from 'antd';
 import type { TaskList } from '@/entities/task-list';
 import { CreateListButton } from '@/features/create-list';
 import { createList } from '@/features/create-list/api';
+import { RenameListButton } from '@/features/rename-list';
+import { renameList } from '@/features/rename-list/api';
 
 import styles from './lists-view.module.css';
 
@@ -27,6 +29,9 @@ export function ListsView({ lists }: { lists: TaskList[] }) {
           {lists.map((list) => (
             <Card key={list.id}>
               <h2 className={styles.listTitle}>{list.title}</h2>
+              <div className={styles.listActions}>
+                <RenameListButton list={list} onSubmit={renameList} />
+              </div>
             </Card>
           ))}
         </div>

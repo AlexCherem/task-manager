@@ -5,7 +5,7 @@ import { useState, useTransition } from 'react';
 
 import {
   taskListTitleMaxLength,
-  type CreateTaskListResult,
+  type TaskListMutationResult,
 } from '@/entities/task-list';
 
 import styles from './create-list-button.module.css';
@@ -13,7 +13,7 @@ import styles from './create-list-button.module.css';
 type CreateListValues = { title: string };
 
 export type CreateListButtonProps = {
-  onSubmit: (values: CreateListValues) => Promise<CreateTaskListResult>;
+  onSubmit: (values: CreateListValues) => Promise<TaskListMutationResult>;
 };
 
 export function CreateListButton({ onSubmit }: CreateListButtonProps) {

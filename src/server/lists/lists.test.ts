@@ -11,7 +11,9 @@ vi.mock('server-only', () => ({}));
 vi.mock('../auth/session', () => ({ requireSession }));
 vi.mock('../db', () => ({ getDb: () => sql }));
 
-import { createTaskList, getTaskLists } from './lists';
+import { createTaskList, getTaskLists, renameTaskList } from './lists';
+
+const listId = '00000000-0000-4000-8000-000000000001';
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -26,6 +28,7 @@ describe('task list data access', () => {
   it.each([
     ['read', () => getTaskLists()],
     ['create', () => createTaskList('Work')],
+    ['rename', () => renameTaskList(listId, 'Work')],
   ] as const)(
     'requires a session before %s reaches the database',
     async (_, operation) => {
@@ -81,5 +84,65 @@ describe('task list data access', () => {
     const error = new Error('Database unavailable');
     sql.mockRejectedValue(error);
     await expect(createTaskList('Work')).rejects.toBe(error);
+  });
+});
+
+describe('renaming task lists', () => {
+  it.each([undefined, null, 42, {}, '', 'not-a-uuid', "' OR true --"])(
+    'rejects an invalid identifier without querying: %j',
+    async (id) => {
+      const result = await renameTaskList(id, 'Work');
+      expect(result.list).toBeNull();
+      expect(result.error).toBe('Некорректный идентификатор списка.');
+      expect(sql).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([undefined, null, 42, {}, [], '', '   '])(
+    'rejects an invalid new title without querying: %j',
+    async (title) => {
+      await expect(renameTaskList(listId, title)).resolves.toEqual({
+        list: null,
+        error: 'Введите название списка.',
+      });
+      expect(sql).not.toHaveBeenCalled();
+    },
+  );
+
+  it('rejects a title beyond the maximum length', async () => {
+    const result = await renameTaskList(
+      listId,
+      'a'.repeat(taskListTitleMaxLength + 1),
+    );
+    expect(result.list).toBeNull();
+    expect(result.error).toContain(String(taskListTitleMaxLength));
+    expect(sql).not.toHaveBeenCalled();
+  });
+
+  it('normalizes the title and passes both title and id as SQL parameters', async () => {
+    const title = "Работа 'новая'";
+    const list = { id: listId, title };
+    sql.mockResolvedValue([list]);
+    await expect(renameTaskList(listId, `  ${title}  `)).resolves.toEqual({
+      list,
+      error: null,
+    });
+    const [strings, ...parameters] = sql.mock.calls[0];
+    expect(strings.join('')).not.toContain(title);
+    expect(strings.join('')).not.toContain(listId);
+    expect(parameters).toEqual([title, listId]);
+  });
+
+  it('reports a list that no longer exists', async () => {
+    await expect(renameTaskList(listId, 'Work')).resolves.toEqual({
+      list: null,
+      error: 'Список не найден. Возможно, он уже удалён.',
+    });
+  });
+
+  it('preserves a database failure', async () => {
+    const error = new Error('Database unavailable');
+    sql.mockRejectedValue(error);
+    await expect(renameTaskList(listId, 'Work')).rejects.toBe(error);
   });
 });

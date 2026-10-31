@@ -1,4 +1,4 @@
 import type { TaskList } from '../model/task-list';
 
-export type CreateTaskListResult =
+export type TaskListMutationResult =
   { list: TaskList; error: null } | { list: null; error: string };

@@ -18,6 +18,7 @@ export function AntdProvider({ children }: { children: ReactNode }) {
       locale={ruRU}
       theme={{
         ...antdTheme,
+        cssVar: { key: isDark ? 'task-manager-dark' : 'task-manager-light' },
         algorithm: isDark ? antd.darkAlgorithm : antd.defaultAlgorithm,
       }}
     >

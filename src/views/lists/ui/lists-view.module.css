@@ -25,6 +25,10 @@
   line-height: 1.4;
 }
 
+.listActions {
+  margin-top: 16px;
+}
+
 @media (max-width: 520px) {
   .heading {
     align-items: flex-start;

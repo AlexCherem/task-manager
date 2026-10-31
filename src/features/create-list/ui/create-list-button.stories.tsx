@@ -1,14 +1,14 @@
 import type { Meta, StoryContext, StoryObj } from '@storybook/nextjs-vite';
 import { expect, fn, waitFor, within } from 'storybook/test';
 
-import type { CreateTaskListResult } from '@/entities/task-list';
+import type { TaskListMutationResult } from '@/entities/task-list';
 
 import {
   CreateListButton,
   type CreateListButtonProps,
 } from './create-list-button';
 
-const success: CreateTaskListResult = {
+const success: TaskListMutationResult = {
   list: { id: 'storybook-list', title: 'Работа' },
   error: null,
 };
@@ -112,7 +112,7 @@ export const CancelAndReopen: Story = {
 
 export const Submitting: Story = {
   play: async (context) => {
-    const request = Promise.withResolvers<CreateTaskListResult>();
+    const request = Promise.withResolvers<TaskListMutationResult>();
     context.args.onSubmit.mockReturnValueOnce(request.promise);
     const dialog = await openDialog(context);
     const form = within(dialog);
