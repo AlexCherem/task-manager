@@ -11,4 +11,8 @@ export {
   taskStatusLabels,
   taskPriorityLabels,
 } from './model/task-config';
-export type { CreateTaskInput, TaskMutationResult } from './api/types';
+export type {
+  CreateTaskInput,
+  UpdateTaskInput,
+  TaskMutationResult,
+} from './api/types';

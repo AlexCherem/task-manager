@@ -1,22 +1,13 @@
 'use client';
 
-import { Alert, Button, DatePicker, Form, Input, Modal, Select } from 'antd';
-import type { Dayjs } from 'dayjs';
+import { Alert, Button, Form, Modal } from 'antd';
 import { useState, useTransition } from 'react';
 
-import {
-  taskTitleMaxLength,
-  taskStatusLabels,
-  taskPriorityLabels,
-  type CreateTaskInput,
-  type TaskMutationResult,
-} from '@/entities/task';
+import { type CreateTaskInput, type TaskMutationResult } from '@/entities/task';
+
+import { TaskFormFields, type TaskFormValues } from '@/entities/task/ui';
 
 import styles from './create-task-button.module.css';
-
-type TaskFormValues = Omit<CreateTaskInput, 'listId' | 'deadline'> & {
-  deadline: Dayjs;
-};
 
 export type CreateTaskButtonProps = {
   listId: string;
@@ -91,67 +82,7 @@ export function CreateTaskButton({ listId, onSubmit }: CreateTaskButtonProps) {
               className={styles.error}
             />
           )}
-          <Form.Item
-            name="title"
-            label="Название задачи"
-            rules={[
-              {
-                required: true,
-                whitespace: true,
-                message: 'Введите название задачи.',
-              },
-              {
-                max: taskTitleMaxLength,
-                message: `Не более ${taskTitleMaxLength} символов.`,
-              },
-            ]}
-          >
-            <Input maxLength={taskTitleMaxLength} autoFocus />
-          </Form.Item>
-          <Form.Item name="description" label="Описание">
-            <Input.TextArea rows={3} />
-          </Form.Item>
-          <div className={styles.fields}>
-            <Form.Item
-              name="status"
-              label="Статус"
-              rules={[{ required: true, message: 'Выберите статус.' }]}
-            >
-              <Select
-                options={Object.entries(taskStatusLabels).map(
-                  ([value, label]) => ({ value, label }),
-                )}
-              />
-            </Form.Item>
-            <Form.Item
-              name="priority"
-              label="Приоритет"
-              rules={[{ required: true, message: 'Выберите приоритет.' }]}
-            >
-              <Select
-                options={Object.entries(taskPriorityLabels).map(
-                  ([value, label]) => ({ value, label }),
-                )}
-              />
-            </Form.Item>
-          </div>
-          <Form.Item
-            name="deadline"
-            label="Дедлайн"
-            extra="Дата и время в вашем часовом поясе. Можно указать прошедший дедлайн."
-            rules={[{ required: true, message: 'Укажите дедлайн.' }]}
-          >
-            <DatePicker
-              showTime={{ format: 'HH:mm' }}
-              format="DD.MM.YYYY HH:mm"
-              needConfirm={false}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') event.preventDefault();
-              }}
-              className={styles.deadline}
-              classNames={{ popup: { root: styles.calendarPopup } }}
-            />
-          </Form.Item>
+          <TaskFormFields />
           <div className={styles.actions}>
             <Button onClick={close} disabled={isPending}>
               Отмена

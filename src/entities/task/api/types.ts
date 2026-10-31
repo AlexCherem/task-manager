@@ -10,5 +10,7 @@ export type CreateTaskInput = {
   deadline: string;
 };
 
+export type UpdateTaskInput = CreateTaskInput & { id: string };
+
 export type TaskMutationResult =
   { task: Task; error: null } | { task: null; error: string };

@@ -9,6 +9,7 @@ import {
   taskPriorityLabels,
   type Task,
   type TaskMutationResult,
+  type CreateTaskInput,
   type TaskStats,
 } from '@/entities/task';
 import { isUuid } from '@/shared/lib/is-uuid';
@@ -42,35 +43,36 @@ export async function getTasksByList(listId: unknown): Promise<Task[]> {
   return rows.map(toTask);
 }
 
-export async function createTask(input: unknown): Promise<TaskMutationResult> {
-  await requireSession();
+function normalizeTaskInput(
+  input: unknown,
+): { data: CreateTaskInput; error: null } | { data: null; error: string } {
   if (typeof input !== 'object' || input === null || Array.isArray(input)) {
-    return { task: null, error: 'Некорректные данные задачи.' };
+    return { data: null, error: 'Некорректные данные задачи.' };
   }
 
   const { listId, title, description, status, priority, deadline } =
     input as Record<string, unknown>;
   if (!isUuid(listId))
-    return { task: null, error: 'Некорректный идентификатор списка.' };
+    return { data: null, error: 'Некорректный идентификатор списка.' };
   if (typeof title !== 'string' || title.trim().length === 0) {
-    return { task: null, error: 'Введите название задачи.' };
+    return { data: null, error: 'Введите название задачи.' };
   }
   if (title.trim().length > taskTitleMaxLength) {
     return {
-      task: null,
+      data: null,
       error: `Название задачи не должно превышать ${taskTitleMaxLength} символов.`,
     };
   }
   if (typeof description !== 'string')
-    return { task: null, error: 'Описание должно быть текстом.' };
+    return { data: null, error: 'Описание должно быть текстом.' };
   if (typeof status !== 'string' || !Object.hasOwn(taskStatusLabels, status)) {
-    return { task: null, error: 'Выберите корректный статус.' };
+    return { data: null, error: 'Выберите корректный статус.' };
   }
   if (
     typeof priority !== 'string' ||
     !Object.hasOwn(taskPriorityLabels, priority)
   ) {
-    return { task: null, error: 'Выберите корректный приоритет.' };
+    return { data: null, error: 'Выберите корректный приоритет.' };
   }
   if (
     typeof deadline !== 'string' ||
@@ -78,18 +80,70 @@ export async function createTask(input: unknown): Promise<TaskMutationResult> {
     !Number.isFinite(Date.parse(deadline)) ||
     new Date(deadline).toISOString() !== deadline
   ) {
-    return { task: null, error: 'Укажите корректные дату и время дедлайна.' };
+    return { data: null, error: 'Укажите корректные дату и время дедлайна.' };
   }
 
+  return {
+    data: {
+      listId,
+      title: title.trim(),
+      description: description.trim(),
+      status,
+      priority,
+      deadline,
+    } as CreateTaskInput,
+    error: null,
+  };
+}
+
+export async function createTask(input: unknown): Promise<TaskMutationResult> {
+  await requireSession();
+  const parsed = normalizeTaskInput(input);
+  if (parsed.error !== null) return { task: null, error: parsed.error };
+
+  const { listId, title, description, status, priority, deadline } =
+    parsed.data;
   const sql = getDb();
   const [row] = await sql`
     INSERT INTO tasks (list_id, title, description, status, priority, deadline)
-    SELECT id, ${title.trim()}, ${description.trim()}, ${status}, ${priority}, ${deadline}
+    SELECT id, ${title}, ${description}, ${status}, ${priority}, ${deadline}
     FROM task_lists WHERE id = ${listId}
     RETURNING id, list_id, title, description, status, priority, deadline
   `;
   if (!row)
     return { task: null, error: 'Список не найден. Возможно, он уже удалён.' };
+
+  return { task: toTask(row), error: null };
+}
+
+export async function updateTask(input: unknown): Promise<TaskMutationResult> {
+  await requireSession();
+  if (
+    typeof input !== 'object' ||
+    input === null ||
+    !('id' in input) ||
+    !isUuid(input.id)
+  ) {
+    return { task: null, error: 'Некорректный идентификатор задачи.' };
+  }
+  const parsed = normalizeTaskInput(input);
+  if (parsed.error !== null) return { task: null, error: parsed.error };
+
+  const { listId, title, description, status, priority, deadline } =
+    parsed.data;
+  const sql = getDb();
+  const [row] = await sql`
+    UPDATE tasks
+    SET title = ${title}, description = ${description}, status = ${status},
+        priority = ${priority}, deadline = ${deadline}
+    WHERE id = ${input.id} AND list_id = ${listId}
+    RETURNING id, list_id, title, description, status, priority, deadline
+  `;
+  if (!row)
+    return {
+      task: null,
+      error: 'Задача не найдена. Возможно, она уже удалена.',
+    };
 
   return { task: toTask(row), error: null };
 }

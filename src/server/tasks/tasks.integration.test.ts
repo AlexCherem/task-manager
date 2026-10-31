@@ -8,7 +8,12 @@ vi.mock('../auth/session', () => ({ requireSession: vi.fn() }));
 import { requireSession } from '../auth/session';
 import { getDb } from '../db';
 import { createTaskList, getTaskList } from '../lists';
-import { createTask, getTasksByList, getTaskListStats } from './tasks';
+import {
+  createTask,
+  getTasksByList,
+  getTaskListStats,
+  updateTask,
+} from './tasks';
 
 const sql = getDb();
 const prefix = `task-integration-${randomUUID()}:`;
@@ -157,5 +162,80 @@ describe('task list statistics in PostgreSQL', () => {
       done: 2,
       progressPercent: 50,
     });
+  });
+});
+
+describe('updating tasks in PostgreSQL', () => {
+  it('saves every field, preserves task identity and list, and leaves another task untouched', async () => {
+    const list = await makeList('edit');
+    const otherList = await makeList('edit-other');
+    const task = await saveTask(list.id);
+    const other = await saveTask(otherList.id);
+    const [before] =
+      await sql`SELECT created_at::text FROM tasks WHERE id = ${task.id}`;
+    const input = {
+      ...task,
+      title: "  Обновлённая 'задача'  ",
+      description: '  Новое описание  ',
+      status: 'in_progress' as const,
+      priority: 'high' as const,
+      deadline: '2031-01-16T13:45:12.345Z',
+    };
+    const expected = {
+      ...input,
+      title: "Обновлённая 'задача'",
+      description: 'Новое описание',
+    };
+    expect(await updateTask(input)).toEqual({ task: expected, error: null });
+    expect(await getTasksByList(list.id)).toEqual([expected]);
+    expect(await getTasksByList(otherList.id)).toEqual([other]);
+    const [after] =
+      await sql`SELECT created_at::text FROM tasks WHERE id = ${task.id}`;
+    expect(after.created_at).toBe(before.created_at);
+  });
+  it('cannot update a task through a different list', async () => {
+    const list = await makeList('edit-scope');
+    const otherList = await makeList('edit-wrong-list');
+    const task = await saveTask(list.id);
+    expect(
+      (
+        await updateTask({
+          ...task,
+          listId: otherList.id,
+          title: 'Should not change',
+        })
+      ).error,
+    ).not.toBeNull();
+    expect(await getTasksByList(list.id)).toEqual([task]);
+    expect(await getTasksByList(otherList.id)).toEqual([]);
+  });
+  it('reports a deleted task without creating a replacement', async () => {
+    const list = await makeList('edit-deleted');
+    const task = await saveTask(list.id);
+    await sql`DELETE FROM tasks WHERE id = ${task.id}`;
+    expect((await updateTask(task)).error).toBe(
+      'Задача не найдена. Возможно, она уже удалена.',
+    );
+    expect(await getTasksByList(list.id)).toEqual([]);
+  });
+  it('recalculates statistics when an overdue task is completed and reopened', async () => {
+    const list = await makeList('edit-stats');
+    const task = await saveTask(list.id, {
+      deadline: '2020-01-01T12:00:00.000Z',
+    });
+    const now = new Date('2030-01-01T12:00:00.000Z');
+    for (const status of ['done', 'in_progress', 'new'] as const) {
+      expect((await updateTask({ ...task, status })).error).toBeNull();
+      const stats = (await getTaskListStats([list.id], now))[list.id];
+      expect(stats).toEqual({
+        total: 1,
+        new: Number(status === 'new'),
+        inProgress: Number(status === 'in_progress'),
+        done: Number(status === 'done'),
+        overdue: Number(status !== 'done'),
+        progressPercent: status === 'done' ? 100 : 0,
+        deadlineIndicator: status === 'done' ? 'none' : 'overdue',
+      });
+    }
   });
 });

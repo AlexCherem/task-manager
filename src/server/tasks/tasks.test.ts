@@ -8,9 +8,15 @@ vi.mock('server-only', () => ({}));
 vi.mock('../auth/session', () => ({ requireSession }));
 vi.mock('../db', () => ({ getDb: () => sql }));
 
-import { createTask, getTasksByList, getTaskListStats } from './tasks';
+import {
+  createTask,
+  getTasksByList,
+  getTaskListStats,
+  updateTask,
+} from './tasks';
 
 const listId = '00000000-0000-4000-8000-000000000001';
+const taskId = '00000000-0000-4000-8000-000000000003';
 const input = {
   listId,
   title: 'Task',
@@ -43,6 +49,7 @@ describe('task data access', () => {
     ['read', () => getTasksByList(listId)],
     ['statistics', () => getTaskListStats([listId])],
     ['create', () => createTask(input)],
+    ['update', () => updateTask({ ...input, id: taskId })],
   ] as const)('requires a session before %s', async (_, operation) => {
     const error = new Error('Session required');
     requireSession.mockRejectedValue(error);
@@ -87,6 +94,9 @@ describe('task data access', () => {
     const result = await createTask({ ...input, [key]: value });
     expect(result.task).toBeNull();
     expect(result.error).not.toBeNull();
+    expect(
+      (await updateTask({ ...input, id: taskId, [key]: value })).error,
+    ).not.toBeNull();
     expect(sql).not.toHaveBeenCalled();
   });
   it('normalizes text and parameterizes all values', async () => {
@@ -128,6 +138,7 @@ describe('task data access', () => {
     ['read', () => getTasksByList(listId)],
     ['statistics', () => getTaskListStats([listId])],
     ['create', () => createTask(input)],
+    ['update', () => updateTask({ ...input, id: taskId })],
   ] as const)('preserves database errors during %s', async (_, operation) => {
     const error = new Error('Database unavailable');
     sql.mockRejectedValue(error);
@@ -195,5 +206,59 @@ describe('task list statistics', () => {
     const [strings, ...parameters] = sql.mock.calls[0];
     expect(strings.join('')).not.toContain(listId);
     expect(parameters).toEqual([[listId, otherId]]);
+  });
+});
+
+describe('updating tasks', () => {
+  it.each([
+    null,
+    undefined,
+    42,
+    {},
+    [],
+    { ...input },
+    { ...input, id: 'invalid' },
+  ])('rejects an invalid task identifier: %j', async (value) => {
+    expect(await updateTask(value)).toEqual({
+      task: null,
+      error: 'Некорректный идентификатор задачи.',
+    });
+    expect(sql).not.toHaveBeenCalled();
+  });
+  it('normalizes all fields and scopes the update to task and list', async () => {
+    const title = "Задача 'обновлена'";
+    sql.mockResolvedValue([
+      { ...row, id: taskId, title, status: 'done', priority: 'high' },
+    ]);
+    expect(
+      await updateTask({
+        ...input,
+        id: taskId,
+        title: `  ${title}  `,
+        description: '  Details  ',
+        status: 'done',
+        priority: 'high',
+      }),
+    ).toEqual({
+      task: { ...input, id: taskId, title, status: 'done', priority: 'high' },
+      error: null,
+    });
+    const [strings, ...parameters] = sql.mock.calls[0];
+    expect(strings.join('')).not.toContain(title);
+    expect(parameters).toEqual([
+      title,
+      'Details',
+      'done',
+      'high',
+      input.deadline,
+      taskId,
+      listId,
+    ]);
+  });
+  it('reports a deleted task or mismatching list without success', async () => {
+    expect(await updateTask({ ...input, id: taskId })).toEqual({
+      task: null,
+      error: 'Задача не найдена. Возможно, она уже удалена.',
+    });
   });
 });

@@ -1,1 +1,6 @@
-export { getTasksByList, createTask, getTaskListStats } from './tasks';
+export {
+  getTasksByList,
+  createTask,
+  updateTask,
+  getTaskListStats,
+} from './tasks';

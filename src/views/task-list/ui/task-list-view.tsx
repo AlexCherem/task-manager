@@ -1,10 +1,11 @@
 import Link from 'next/link';
 
 import type { Task } from '@/entities/task';
-import { TaskTable } from '@/entities/task/ui';
 import type { TaskList } from '@/entities/task-list';
 import { CreateTaskButton } from '@/features/create-task';
 import { createTask } from '@/features/create-task/api';
+import { updateTask } from '@/features/edit-task/api';
+import { TaskListTasks } from '@/widgets/task-list-tasks';
 
 import styles from './task-list-view.module.css';
 
@@ -31,7 +32,7 @@ export function TaskListView({
         </div>
         <CreateTaskButton listId={list.id} onSubmit={createTask} />
       </div>
-      <TaskTable tasks={tasks} now={now} />
+      <TaskListTasks tasks={tasks} now={now} onUpdate={updateTask} />
     </section>
   );
 }

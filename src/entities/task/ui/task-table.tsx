@@ -9,7 +9,15 @@ import { sortTasks, type Task } from '../model/task';
 import { taskStatusLabels, taskPriorityLabels } from '../model/task-config';
 import styles from './task-table.module.css';
 
-export function TaskTable({ tasks, now }: { tasks: Task[]; now: string }) {
+export function TaskTable({
+  tasks,
+  now,
+  onTaskSelect,
+}: {
+  tasks: Task[];
+  now: string;
+  onTaskSelect?: (task: Task) => void;
+}) {
   const hydrated = useHydrated();
   const formatter = new Intl.DateTimeFormat('ru-RU', {
     dateStyle: 'short',
@@ -24,7 +32,17 @@ export function TaskTable({ tasks, now }: { tasks: Task[]; now: string }) {
       width: 300,
       render: (_, task) => (
         <div>
-          <span className={styles.title}>{task.title}</span>
+          {onTaskSelect ? (
+            <button
+              type="button"
+              className={styles.taskButton}
+              onClick={() => onTaskSelect(task)}
+            >
+              {task.title}
+            </button>
+          ) : (
+            <span className={styles.title}>{task.title}</span>
+          )}
           {task.description && (
             <p className={styles.description}>{task.description}</p>
           )}
