@@ -2,6 +2,7 @@
 
 import { Table, Tag } from 'antd';
 import type { TableColumnsType } from 'antd';
+import type { ReactNode } from 'react';
 
 import { useHydrated } from '@/shared/lib/use-hydrated';
 
@@ -13,10 +14,12 @@ export function TaskTable({
   tasks,
   now,
   onTaskSelect,
+  renderActions,
 }: {
   tasks: Task[];
   now: string;
   onTaskSelect?: (task: Task) => void;
+  renderActions?: (task: Task) => ReactNode;
 }) {
   const hydrated = useHydrated();
   const formatter = new Intl.DateTimeFormat('ru-RU', {
@@ -104,6 +107,15 @@ export function TaskTable({
     },
   ];
 
+  if (renderActions) {
+    columns.push({
+      title: 'Действия',
+      key: 'actions',
+      width: 110,
+      render: (_, task) => renderActions(task),
+    });
+  }
+
   return (
     <Table<Task>
       rowKey="id"
@@ -114,7 +126,7 @@ export function TaskTable({
         hideOnSinglePage: true,
         showSizeChanger: false,
       }}
-      scroll={{ x: 740 }}
+      scroll={{ x: renderActions ? 850 : 740 }}
       locale={{ emptyText: 'В этом списке пока нет задач.' }}
     />
   );

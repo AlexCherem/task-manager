@@ -14,3 +14,8 @@ export type UpdateTaskInput = CreateTaskInput & { id: string };
 
 export type TaskMutationResult =
   { task: Task; error: null } | { task: null; error: string };
+
+export type DeleteTaskInput = Pick<Task, 'id' | 'listId'>;
+
+export type DeleteTaskResult =
+  { listId: string; error: null } | { listId: null; error: string };

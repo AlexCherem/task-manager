@@ -22,6 +22,7 @@ const other: Task = {
   deadline: '2030-01-02T12:00:00.000Z',
 };
 const submit = fn<ComponentProps<typeof TaskListTasks>['onUpdate']>();
+const remove = fn<ComponentProps<typeof TaskListTasks>['onDelete']>();
 
 // Simulates refreshed server props after a successful action; persistence is tested in PostgreSQL.
 function Demo(args: ComponentProps<typeof TaskListTasks>) {
@@ -31,6 +32,15 @@ function Demo(args: ComponentProps<typeof TaskListTasks>) {
     <TaskListTasks
       {...args}
       tasks={tasks}
+      onDelete={async (input) => {
+        const result = await args.onDelete(input);
+        if (result.error === null)
+          setTasks((previous) =>
+            previous.filter((item) => item.id !== input.id),
+          );
+
+        return result;
+      }}
       onUpdate={async (input) => {
         const result = await args.onUpdate(input);
         if (result.error === null)
@@ -52,10 +62,12 @@ const meta = {
     tasks: [task, other],
     now: '2030-01-01T12:00:00.000Z',
     onUpdate: submit,
+    onDelete: remove,
   },
   render: (args) => <Demo {...args} />,
   parameters: { layout: 'padded' },
   beforeEach() {
+    remove.mockReset().mockResolvedValue({ listId: task.listId, error: null });
     submit
       .mockReset()
       .mockImplementation(async (input) => ({ task: input, error: null }));
@@ -288,5 +300,58 @@ export const Submitting: Story = {
       request.resolve({ task, error: null });
     }
     await waitFor(() => expect(dialog).not.toBeInTheDocument());
+  },
+};
+
+export const DeleteSelectedTask: Story = {
+  play: async (context) => {
+    await expect(
+      context.canvas.getByRole('columnheader', { name: 'Действия' }),
+    ).toBeVisible();
+    await context.userEvent.click(
+      context.canvas.getByRole('button', {
+        name: `Удалить задачу «${task.title}»`,
+      }),
+    );
+    const dialog = await within(
+      context.canvasElement.ownerDocument.body,
+    ).findByRole('dialog', { name: 'Удалить задачу?' });
+    await context.userEvent.click(
+      within(dialog).getByRole('button', { name: 'Удалить задачу' }),
+    );
+    await waitFor(() =>
+      expect(
+        context.canvas.queryByRole('button', { name: task.title }),
+      ).not.toBeInTheDocument(),
+    );
+    await expect(context.args.onDelete).toHaveBeenCalledOnce();
+    await expect(context.args.onDelete).toHaveBeenCalledWith({
+      id: task.id,
+      listId: task.listId,
+    });
+    await expect(
+      context.canvas.getByRole('button', { name: other.title }),
+    ).toBeVisible();
+    await expect(context.args.onUpdate).not.toHaveBeenCalled();
+  },
+};
+export const DeleteLastTask: Story = {
+  args: { tasks: [task] },
+  play: async (context) => {
+    await context.userEvent.click(
+      context.canvas.getByRole('button', {
+        name: `Удалить задачу «${task.title}»`,
+      }),
+    );
+    const dialog = await within(
+      context.canvasElement.ownerDocument.body,
+    ).findByRole('dialog', { name: 'Удалить задачу?' });
+    await context.userEvent.click(
+      within(dialog).getByRole('button', { name: 'Удалить задачу' }),
+    );
+    await expect(
+      await context.canvas.findByText('В этом списке пока нет задач.'),
+    ).toBeVisible();
+    await expect(context.args.onDelete).toHaveBeenCalledOnce();
   },
 };

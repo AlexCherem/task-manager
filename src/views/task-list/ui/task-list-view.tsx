@@ -4,6 +4,7 @@ import type { Task } from '@/entities/task';
 import type { TaskList } from '@/entities/task-list';
 import { CreateTaskButton } from '@/features/create-task';
 import { createTask } from '@/features/create-task/api';
+import { deleteTask } from '@/features/delete-task/api';
 import { updateTask } from '@/features/edit-task/api';
 import { TaskListTasks } from '@/widgets/task-list-tasks';
 
@@ -32,7 +33,12 @@ export function TaskListView({
         </div>
         <CreateTaskButton listId={list.id} onSubmit={createTask} />
       </div>
-      <TaskListTasks tasks={tasks} now={now} onUpdate={updateTask} />
+      <TaskListTasks
+        tasks={tasks}
+        now={now}
+        onUpdate={updateTask}
+        onDelete={deleteTask}
+      />
     </section>
   );
 }

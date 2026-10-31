@@ -13,6 +13,7 @@ import {
   getTasksByList,
   getTaskListStats,
   updateTask,
+  deleteTask,
 } from './tasks';
 
 const listId = '00000000-0000-4000-8000-000000000001';
@@ -50,6 +51,7 @@ describe('task data access', () => {
     ['statistics', () => getTaskListStats([listId])],
     ['create', () => createTask(input)],
     ['update', () => updateTask({ ...input, id: taskId })],
+    ['delete', () => deleteTask({ id: taskId, listId })],
   ] as const)('requires a session before %s', async (_, operation) => {
     const error = new Error('Session required');
     requireSession.mockRejectedValue(error);
@@ -139,6 +141,7 @@ describe('task data access', () => {
     ['statistics', () => getTaskListStats([listId])],
     ['create', () => createTask(input)],
     ['update', () => updateTask({ ...input, id: taskId })],
+    ['delete', () => deleteTask({ id: taskId, listId })],
   ] as const)('preserves database errors during %s', async (_, operation) => {
     const error = new Error('Database unavailable');
     sql.mockRejectedValue(error);
@@ -259,6 +262,51 @@ describe('updating tasks', () => {
     expect(await updateTask({ ...input, id: taskId })).toEqual({
       task: null,
       error: 'Задача не найдена. Возможно, она уже удалена.',
+    });
+  });
+});
+
+describe('deleting tasks', () => {
+  it.each([
+    undefined,
+    null,
+    42,
+    {},
+    [],
+    { id: 'invalid', listId },
+    { id: "' OR true --", listId },
+  ])('rejects an invalid task id before deleting: %j', async (value) => {
+    expect(await deleteTask(value)).toEqual({
+      listId: null,
+      error: 'Некорректный идентификатор задачи.',
+    });
+    expect(sql).not.toHaveBeenCalled();
+  });
+  it.each([undefined, null, 42, '', 'invalid', "' OR true --"])(
+    'rejects an invalid list id before deleting: %j',
+    async (value) => {
+      expect(await deleteTask({ id: taskId, listId: value })).toEqual({
+        listId: null,
+        error: 'Некорректный идентификатор списка.',
+      });
+      expect(sql).not.toHaveBeenCalled();
+    },
+  );
+  it('parameterizes both identifiers and returns the validated list for refresh', async () => {
+    expect(await deleteTask({ id: taskId, listId })).toEqual({
+      listId,
+      error: null,
+    });
+    const [strings, ...parameters] = sql.mock.calls[0];
+    expect(strings.join('')).not.toContain(taskId);
+    expect(strings.join('')).not.toContain(listId);
+    expect(parameters).toEqual([taskId, listId]);
+  });
+  it('treats a task already removed by another tab as successfully deleted', async () => {
+    sql.mockResolvedValue([]);
+    expect(await deleteTask({ id: taskId, listId })).toEqual({
+      listId,
+      error: null,
     });
   });
 });

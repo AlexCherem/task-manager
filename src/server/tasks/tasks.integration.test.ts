@@ -13,6 +13,7 @@ import {
   getTasksByList,
   getTaskListStats,
   updateTask,
+  deleteTask,
 } from './tasks';
 
 const sql = getDb();
@@ -237,5 +238,74 @@ describe('updating tasks in PostgreSQL', () => {
         deadlineIndicator: status === 'done' ? 'none' : 'overdue',
       });
     }
+  });
+});
+
+describe('deleting tasks in PostgreSQL', () => {
+  it('deletes only the requested task, preserves lists and recalculates statistics', async () => {
+    const list = await makeList('delete');
+    const otherList = await makeList('delete-other');
+    const overdue = await saveTask(list.id, {
+      deadline: '2020-01-01T12:00:00.000Z',
+    });
+    const done = await saveTask(list.id, { status: 'done' });
+    const other = await saveTask(otherList.id);
+    const now = new Date('2030-01-01T12:00:00.000Z');
+    expect((await getTaskListStats([list.id], now))[list.id]).toMatchObject({
+      total: 2,
+      overdue: 1,
+      progressPercent: 50,
+    });
+    expect(await deleteTask({ id: overdue.id, listId: list.id })).toEqual({
+      listId: list.id,
+      error: null,
+    });
+    expect(await getTasksByList(list.id)).toEqual([done]);
+    expect(await getTasksByList(otherList.id)).toEqual([other]);
+    expect(await getTaskList(list.id)).toEqual(list);
+    expect((await getTaskListStats([list.id], now))[list.id]).toEqual({
+      total: 1,
+      new: 0,
+      inProgress: 0,
+      done: 1,
+      overdue: 0,
+      progressPercent: 100,
+      deadlineIndicator: 'none',
+    });
+    expect(
+      (await deleteTask({ id: done.id, listId: list.id })).error,
+    ).toBeNull();
+    expect(await getTasksByList(list.id)).toEqual([]);
+    expect((await getTaskListStats([list.id], now))[list.id]).toEqual({
+      total: 0,
+      new: 0,
+      inProgress: 0,
+      done: 0,
+      overdue: 0,
+      progressPercent: 0,
+      deadlineIndicator: 'none',
+    });
+  });
+  it('does not delete a task through another list', async () => {
+    const list = await makeList('delete-scope');
+    const otherList = await makeList('delete-wrong-list');
+    const task = await saveTask(list.id);
+    expect(
+      (await deleteTask({ id: task.id, listId: otherList.id })).error,
+    ).toBeNull();
+    expect(await getTasksByList(list.id)).toEqual([task]);
+    expect(await getTasksByList(otherList.id)).toEqual([]);
+  });
+  it('allows repeated deletion and deletion after the parent list is removed', async () => {
+    const list = await makeList('delete-twice');
+    const otherList = await makeList('delete-keep');
+    const task = await saveTask(list.id);
+    const other = await saveTask(otherList.id);
+    const input = { id: task.id, listId: list.id };
+    expect((await deleteTask(input)).error).toBeNull();
+    expect((await deleteTask(input)).error).toBeNull();
+    await sql`DELETE FROM task_lists WHERE id = ${list.id}`;
+    expect((await deleteTask(input)).error).toBeNull();
+    expect(await getTasksByList(otherList.id)).toEqual([other]);
   });
 });

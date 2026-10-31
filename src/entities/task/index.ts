@@ -15,4 +15,6 @@ export type {
   CreateTaskInput,
   UpdateTaskInput,
   TaskMutationResult,
+  DeleteTaskInput,
+  DeleteTaskResult,
 } from './api/types';

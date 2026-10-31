@@ -11,6 +11,7 @@ import {
   type TaskMutationResult,
   type CreateTaskInput,
   type TaskStats,
+  type DeleteTaskResult,
 } from '@/entities/task';
 import { isUuid } from '@/shared/lib/is-uuid';
 
@@ -176,4 +177,24 @@ export async function getTaskListStats(
   return Object.fromEntries(
     [...tasksByList].map(([id, tasks]) => [id, getTaskStats(tasks, now)]),
   );
+}
+
+export async function deleteTask(input: unknown): Promise<DeleteTaskResult> {
+  await requireSession();
+  if (
+    typeof input !== 'object' ||
+    input === null ||
+    !('id' in input) ||
+    !isUuid(input.id)
+  ) {
+    return { listId: null, error: 'Некорректный идентификатор задачи.' };
+  }
+  if (!('listId' in input) || !isUuid(input.listId)) {
+    return { listId: null, error: 'Некорректный идентификатор списка.' };
+  }
+
+  const sql = getDb();
+  await sql`DELETE FROM tasks WHERE id = ${input.id} AND list_id = ${input.listId}`;
+
+  return { listId: input.listId, error: null };
 }
