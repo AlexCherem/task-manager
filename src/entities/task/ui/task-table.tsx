@@ -15,11 +15,13 @@ export function TaskTable({
   now,
   onTaskSelect,
   renderActions,
+  emptyText,
 }: {
   tasks: Task[];
   now: string;
   onTaskSelect?: (task: Task) => void;
   renderActions?: (task: Task) => ReactNode;
+  emptyText?: string;
 }) {
   const hydrated = useHydrated();
   const formatter = new Intl.DateTimeFormat('ru-RU', {
@@ -127,7 +129,13 @@ export function TaskTable({
         showSizeChanger: false,
       }}
       scroll={{ x: renderActions ? 850 : 740 }}
-      locale={{ emptyText: 'В этом списке пока нет задач.' }}
+      locale={{
+        emptyText: (
+          <span className={styles.emptyText}>
+            {emptyText ?? 'В этом списке пока нет задач.'}
+          </span>
+        ),
+      }}
     />
   );
 }

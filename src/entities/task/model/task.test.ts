@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { getTaskStats, sortTasks, type Task } from './task';
+import {
+  getTaskStats,
+  sortTasks,
+  filterTasks,
+  defaultTaskFilters,
+  type Task,
+} from './task';
 
 const now = new Date('2026-10-29T09:00:00.000Z');
 const hour = 60 * 60 * 1000;
@@ -294,6 +300,113 @@ describe('getTaskStats', () => {
       new: 2,
       overdue: 1,
       deadlineIndicator: 'overdue',
+    });
+  });
+});
+
+describe('filterTasks', () => {
+  const tasks = [
+    makeTask('overdue-new', { deadline: deadlineIn(-1), priority: 'low' }),
+    makeTask('working', { status: 'in_progress', priority: 'high' }),
+    makeTask('done', { status: 'done', deadline: deadlineIn(-hour) }),
+    makeTask('new-future'),
+  ];
+
+  it('shows all tasks in their input order by default', () => {
+    expect(filterTasks(tasks, defaultTaskFilters, now)).toEqual(tasks);
+  });
+  it.each([
+    ['new', ['overdue-new', 'new-future']],
+    ['in_progress', ['working']],
+    ['done', ['done']],
+  ] as const)('filters status %s', (status, ids) => {
+    expect(
+      filterTasks(tasks, { ...defaultTaskFilters, status }, now).map(
+        (task) => task.id,
+      ),
+    ).toEqual(ids);
+  });
+  it.each([
+    ['low', ['overdue-new']],
+    ['medium', ['done', 'new-future']],
+    ['high', ['working']],
+  ] as const)('filters priority %s', (priority, ids) => {
+    expect(
+      filterTasks(tasks, { ...defaultTaskFilters, priority }, now).map(
+        (task) => task.id,
+      ),
+    ).toEqual(ids);
+  });
+  it('combines filters as an intersection', () => {
+    expect(
+      filterTasks(
+        tasks,
+        { status: 'new', priority: 'low', overdueOnly: true },
+        now,
+      ).map((task) => task.id),
+    ).toEqual(['overdue-new']);
+    expect(
+      filterTasks(
+        tasks,
+        { status: 'done', priority: 'all', overdueOnly: true },
+        now,
+      ),
+    ).toEqual([]);
+  });
+  it('excludes completed tasks and deadlines exactly at now from overdue results', () => {
+    const tasks = [
+      makeTask('past', { status: 'in_progress', deadline: deadlineIn(-1) }),
+      makeTask('now', { deadline: deadlineIn(0) }),
+      makeTask('future', { deadline: deadlineIn(1) }),
+      makeTask('done', { status: 'done', deadline: deadlineIn(-hour) }),
+    ];
+    expect(
+      filterTasks(tasks, { ...defaultTaskFilters, overdueOnly: true }, now).map(
+        (task) => task.id,
+      ),
+    ).toEqual(['past']);
+  });
+  it('compares overdue deadlines as instants with time zones', () => {
+    const tasks = [
+      makeTask('now', { deadline: '2026-10-29T12:00:00+03:00' }),
+      makeTask('past', { deadline: '2026-10-29T11:59:59+03:00' }),
+    ];
+    expect(
+      filterTasks(tasks, { ...defaultTaskFilters, overdueOnly: true }, now).map(
+        (task) => task.id,
+      ),
+    ).toEqual(['past']);
+  });
+  it('handles empty lists and combinations with no matches', () => {
+    expect(filterTasks([], defaultTaskFilters, now)).toEqual([]);
+    expect(
+      filterTasks(
+        tasks,
+        { ...defaultTaskFilters, status: 'done', priority: 'low' },
+        now,
+      ),
+    ).toEqual([]);
+  });
+  it('keeps the existing sort rules and does not mutate source tasks or filters', () => {
+    const source = Object.freeze(
+      [...tasks].reverse().map((task) => Object.freeze({ ...task })),
+    );
+    const before = structuredClone(source);
+    const filters = Object.freeze({
+      ...defaultTaskFilters,
+      status: 'new' as const,
+    });
+    const result = filterTasks(source, filters, now);
+    expect(sortTasks(result, now).map((task) => task.id)).toEqual([
+      'overdue-new',
+      'new-future',
+    ]);
+    expect(source).toEqual(before);
+    expect(result).not.toBe(source);
+    expect(filters).toEqual({
+      status: 'new',
+      priority: 'all',
+      overdueOnly: false,
     });
   });
 });

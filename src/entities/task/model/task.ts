@@ -13,6 +13,18 @@ export type Task = {
   deadline: string;
 };
 
+export type TaskFilters = {
+  status: TaskStatus | 'all';
+  priority: TaskPriority | 'all';
+  overdueOnly: boolean;
+};
+
+export const defaultTaskFilters: TaskFilters = {
+  status: 'all',
+  priority: 'all',
+  overdueOnly: false,
+};
+
 export type TaskDeadlineIndicator = 'none' | 'due_soon' | 'overdue';
 
 export type TaskStats = {
@@ -59,6 +71,21 @@ export function sortTasks(tasks: readonly Task[], now: Date): Task[] {
 
     return priorityOrder[left.priority] - priorityOrder[right.priority];
   });
+}
+
+export function filterTasks(
+  tasks: readonly Task[],
+  filters: TaskFilters,
+  now: Date,
+): Task[] {
+  const nowTimestamp = now.getTime();
+
+  return tasks.filter(
+    (task) =>
+      (filters.status === 'all' || task.status === filters.status) &&
+      (filters.priority === 'all' || task.priority === filters.priority) &&
+      (!filters.overdueOnly || isOverdue(task, nowTimestamp)),
+  );
 }
 
 export function getTaskStats(

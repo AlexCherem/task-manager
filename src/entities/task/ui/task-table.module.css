@@ -31,3 +31,7 @@
   outline: 2px solid var(--primary);
   outline-offset: 3px;
 }
+
+.emptyText {
+  color: var(--muted);
+}

@@ -1,10 +1,16 @@
-export { getTaskStats, sortTasks } from './model/task';
+export {
+  getTaskStats,
+  sortTasks,
+  filterTasks,
+  defaultTaskFilters,
+} from './model/task';
 export type {
   Task,
   TaskDeadlineIndicator,
   TaskPriority,
   TaskStats,
   TaskStatus,
+  TaskFilters,
 } from './model/task';
 export {
   taskTitleMaxLength,
