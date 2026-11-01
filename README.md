@@ -10,7 +10,7 @@ Live demo пока не опубликовано. Перед сдачей нуж
 
 ## Запуск
 
-Требуются Node.js 22.12+ и pnpm 11.19.0.
+Требуются Node.js 22 (не ниже 22.12.0) и pnpm 11.19.0. Версии закреплены в `engines.node` и `packageManager` файла `package.json`.
 
 ```bash
 pnpm install
@@ -32,6 +32,18 @@ pnpm dev
 При публикации задайте `DATABASE_URL` и отдельный `SESSION_SECRET` в переменных окружения Vercel.
 
 Откройте адрес из вывода терминала: обычно http://localhost:3000. Если порт занят, Next.js выберет следующий свободный.
+
+## Настройки сборки Vercel
+
+При импорте репозитория используйте следующие настройки:
+
+- Framework Preset — `Next.js`, Root Directory — `./`.
+- Build Command — `pnpm build`; Install Command и Output Directory оставьте автоматическими.
+- `DATABASE_URL` — строка подключения к существующей базе Neon.
+- `SESSION_SECRET` — отдельный случайный ключ длиной не менее 32 символов.
+- `ENABLE_EXPERIMENTAL_COREPACK=1` — переменная окружения для использования `pnpm@11.19.0` из `packageManager`, согласно [документации Vercel](https://vercel.com/docs/builds/configure-a-build#corepack).
+
+Задайте переменные для окружения Production, а при использовании preview-развёртываний — и для Preview. Диапазон `engines.node` ограничивает Node.js веткой 22. База уже подготовлена отдельно; `pnpm build` не применяет SQL-схему.
 
 ## Подключение PostgreSQL
 
