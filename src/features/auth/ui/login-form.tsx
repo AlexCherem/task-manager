@@ -1,7 +1,9 @@
 'use client';
 
-import { Alert, Button, Form, Input } from 'antd';
+import { Alert, Form, Input } from 'antd';
 import { useState, useTransition } from 'react';
+
+import { Button } from '@/shared/ui/button';
 
 import type { LoginResult, LoginValues } from '../model/login';
 
@@ -75,13 +77,11 @@ export function LoginForm({ onSubmit }: LoginFormProps) {
       <Form.Item style={{ marginBottom: 0 }}>
         <Button
           aria-label="Войти"
-          aria-busy={isPending}
           type="primary"
           htmlType="submit"
           size="large"
           block
           loading={isPending}
-          disabled={isPending}
         >
           Войти
         </Button>

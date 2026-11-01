@@ -1,6 +1,7 @@
 'use client';
 
-import { Button, Result } from 'antd';
+import { Result } from 'antd';
+import { Button } from '@/shared/ui/button';
 
 export function ListsErrorView({ reset }: { reset: () => void }) {
   return (

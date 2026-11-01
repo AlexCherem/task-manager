@@ -1,7 +1,9 @@
 'use client';
 
-import { Alert, Button, Form, Modal } from 'antd';
+import { Alert, Form, Modal } from 'antd';
 import { useState, useTransition } from 'react';
+
+import { Button } from '@/shared/ui/button';
 
 import { type CreateTaskInput, type TaskMutationResult } from '@/entities/task';
 
@@ -91,7 +93,6 @@ export function CreateTaskButton({ listId, onSubmit }: CreateTaskButtonProps) {
               type="primary"
               htmlType="submit"
               loading={isPending}
-              disabled={isPending}
               aria-label="Создать"
             >
               Создать

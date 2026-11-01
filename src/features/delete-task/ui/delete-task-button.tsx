@@ -1,7 +1,9 @@
 'use client';
 
-import { Alert, Button, Modal } from 'antd';
+import { Alert, Modal } from 'antd';
 import { useState, useTransition } from 'react';
+
+import { Button } from '@/shared/ui/button';
 
 import type { DeleteTaskInput, DeleteTaskResult, Task } from '@/entities/task';
 

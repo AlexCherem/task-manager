@@ -1,10 +1,12 @@
 'use client';
 
-import { Button, Input } from 'antd';
+import { Input } from 'antd';
 import Form from 'next/form';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useFormStatus } from 'react-dom';
+
+import { Button } from '@/shared/ui/button';
 
 import styles from './search-lists-form.module.css';
 
@@ -12,12 +14,7 @@ function SearchButton() {
   const { pending } = useFormStatus();
 
   return (
-    <Button
-      type="primary"
-      htmlType="submit"
-      loading={pending}
-      disabled={pending}
-    >
+    <Button type="primary" htmlType="submit" loading={pending}>
       Найти
     </Button>
   );

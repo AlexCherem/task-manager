@@ -1,8 +1,10 @@
 'use client';
 
-import { Alert, Button, Form, Modal } from 'antd';
+import { Alert, Form, Modal } from 'antd';
 import dayjs from 'dayjs';
 import { useState, useTransition } from 'react';
+
+import { Button } from '@/shared/ui/button';
 
 import type {
   Task,
@@ -97,7 +99,6 @@ export function EditTaskModal({ task, onClose, onSubmit }: EditTaskModalProps) {
             type="primary"
             htmlType="submit"
             loading={isPending}
-            disabled={isPending}
             aria-label="Сохранить"
           >
             Сохранить

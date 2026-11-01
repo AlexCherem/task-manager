@@ -1,7 +1,9 @@
 'use client';
 
-import { Alert, Button, Form, Input, Modal } from 'antd';
+import { Alert, Form, Input, Modal } from 'antd';
 import { useState, useTransition } from 'react';
+
+import { Button } from '@/shared/ui/button';
 
 import {
   taskListTitleMaxLength,
@@ -117,7 +119,6 @@ export function RenameListButton({ list, onSubmit }: RenameListButtonProps) {
               type="primary"
               htmlType="submit"
               loading={isPending}
-              disabled={isPending}
               aria-label="Сохранить"
             >
               Сохранить

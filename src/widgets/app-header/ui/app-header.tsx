@@ -1,5 +1,6 @@
-import { Button } from 'antd';
 import Link from 'next/link';
+
+import { Button } from '@/shared/ui/button';
 
 import { logout } from '@/features/auth/api';
 import { ThemeSwitcher } from '@/features/theme';

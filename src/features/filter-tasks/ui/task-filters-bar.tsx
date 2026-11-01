@@ -1,7 +1,9 @@
 'use client';
 
-import { Button, Checkbox, Select } from 'antd';
+import { Checkbox, Select } from 'antd';
 import { useId } from 'react';
+
+import { Button } from '@/shared/ui/button';
 
 import {
   taskStatusLabels,
