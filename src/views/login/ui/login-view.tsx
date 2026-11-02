@@ -1,7 +1,6 @@
 import { Card } from 'antd';
 
-import { LoginForm } from '@/features/auth';
-import { login } from '@/features/auth/api';
+import { Login } from '@/features/auth';
 
 import styles from './login-view.module.css';
 
@@ -14,7 +13,7 @@ export function LoginView() {
         <p className={styles.description}>
           Войдите, чтобы управлять списками и задачами.
         </p>
-        <LoginForm onSubmit={login} />
+        <Login />
       </Card>
     </main>
   );

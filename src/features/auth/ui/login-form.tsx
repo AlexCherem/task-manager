@@ -9,9 +9,10 @@ import type { LoginResult, LoginValues } from '../model/login';
 
 export type LoginFormProps = {
   onSubmit: (values: LoginValues) => Promise<LoginResult>;
+  onSuccess: () => void;
 };
 
-export function LoginForm({ onSubmit }: LoginFormProps) {
+export function LoginForm({ onSubmit, onSuccess }: LoginFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -20,12 +21,17 @@ export function LoginForm({ onSubmit }: LoginFormProps) {
 
     setError(null);
     startTransition(async () => {
+      let result: LoginResult;
       try {
-        const result = await onSubmit(values);
-        setError(result.error);
+        result = await onSubmit(values);
       } catch {
         setError('Не удалось войти. Попробуйте ещё раз.');
+
+        return;
       }
+
+      setError(result.error);
+      if (result.error === null) onSuccess();
     });
   }
 

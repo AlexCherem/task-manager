@@ -9,6 +9,7 @@ const credentials: LoginValues = {
   password: 'Admin123!',
 };
 const submit = fn<LoginFormProps['onSubmit']>();
+const success = fn<LoginFormProps['onSuccess']>();
 
 const meta = {
   title: 'Features/Auth/LoginForm',
@@ -20,9 +21,10 @@ const meta = {
       </div>
     ),
   ],
-  args: { onSubmit: submit },
+  args: { onSubmit: submit, onSuccess: success },
   beforeEach() {
     submit.mockReset().mockResolvedValue({ error: null });
+    success.mockReset();
   },
 } satisfies Meta<typeof LoginForm>;
 
@@ -49,6 +51,8 @@ export const Submit: Story = {
     await waitFor(() =>
       expect(context.args.onSubmit).toHaveBeenCalledWith(credentials),
     );
+    await waitFor(() => expect(context.args.onSuccess).toHaveBeenCalledOnce());
+    await expect(context.canvas.queryByRole('alert')).not.toBeInTheDocument();
   },
 };
 
@@ -60,6 +64,7 @@ export const RequiredFields: Story = {
       expect(canvas.getByText('Введите пароль.')).toBeVisible();
     });
     await expect(args.onSubmit).not.toHaveBeenCalled();
+    await expect(args.onSuccess).not.toHaveBeenCalled();
   },
 };
 
@@ -72,6 +77,7 @@ export const InvalidEmail: Story = {
       ).toBeVisible(),
     );
     await expect(context.args.onSubmit).not.toHaveBeenCalled();
+    await expect(context.args.onSuccess).not.toHaveBeenCalled();
   },
 };
 
@@ -87,6 +93,7 @@ export const RejectedCredentials: Story = {
       error,
     );
     await waitFor(() => expect(button).toBeEnabled());
+    await expect(context.args.onSuccess).not.toHaveBeenCalled();
   },
 };
 
@@ -97,6 +104,7 @@ export const ConnectionError: Story = {
     await expect(await context.canvas.findByRole('alert')).toHaveTextContent(
       'Не удалось войти. Попробуйте ещё раз.',
     );
+    await expect(context.args.onSuccess).not.toHaveBeenCalled();
   },
 };
 
@@ -111,9 +119,11 @@ export const RetryAfterError: Story = {
       password: 'WrongPassword',
     });
     await expect(await canvas.findByRole('alert')).toBeVisible();
+    await expect(args.onSuccess).not.toHaveBeenCalled();
     await waitFor(() => expect(button).toBeEnabled());
     await submitForm(context);
     await waitFor(() => expect(args.onSubmit).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(args.onSuccess).toHaveBeenCalledOnce());
     await waitFor(() =>
       expect(canvas.queryByRole('alert')).not.toBeInTheDocument(),
     );
@@ -131,9 +141,13 @@ export const Submitting: Story = {
       await expect(canvas.getByLabelText('Email')).toBeDisabled();
       await expect(canvas.getByLabelText('Пароль')).toBeDisabled();
       await expect(button).toBeDisabled();
+      await expect(args.onSuccess).not.toHaveBeenCalled();
+      await expect(canvas.queryByRole('alert')).not.toBeInTheDocument();
     } finally {
       request.resolve({ error: null });
     }
     await waitFor(() => expect(button).toBeEnabled());
+    await waitFor(() => expect(args.onSuccess).toHaveBeenCalledOnce());
+    await expect(canvas.queryByRole('alert')).not.toBeInTheDocument();
   },
 };

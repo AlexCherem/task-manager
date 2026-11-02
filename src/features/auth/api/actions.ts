@@ -32,7 +32,8 @@ export async function login(input: unknown): Promise<LoginResult> {
   }
 
   await createSession();
-  redirect('/lists');
+
+  return { error: null };
 }
 
 export async function logout(): Promise<void> {
